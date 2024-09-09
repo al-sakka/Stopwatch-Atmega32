@@ -63,7 +63,7 @@ int main(void)
 	TIMER1_Init();
 	segment_init();
 
-	while(1)
+	while(TRUE)
 	{
 		if(seconds_1 > 9)
 		{

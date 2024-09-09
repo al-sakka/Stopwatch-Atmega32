@@ -10,8 +10,8 @@ typedef signed int sint_32;
 
 #define ZERO 0
 
-#define true 1
-#define false 0
+#define TRUE 1
+#define FALSE 0
 
 #define SET_BIT(REG, BIT) ((REG) |= (1 << (BIT)))
 #define CLEAR_BIT(REG, BIT) ((REG) &= ~(1 << (BIT)))
@@ -19,5 +19,8 @@ typedef signed int sint_32;
 
 #define BIT_IS_SET(REG, BIT) ((REG) & (1 << (BIT)))
 #define BIT_IS_CLEAR(REG, BIT) (!((REG) & (1 << (BIT))))
+
+#define ROR(REG, N) (REG = ((REG) >> (N)) | ((REG) << (8 - (N))))
+#define ROL(REG, N) (REG = ((REG) << (N)) | ((REG) >> (8 - (N))))
 
 #endif
