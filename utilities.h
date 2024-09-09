@@ -1,3 +1,6 @@
+#ifndef UTILITIES_H_
+#define UTILITIES_H_
+
 typedef unsigned char uint_8;
 typedef signed char   sint_8;
 typedef unsigned short uint_16;
@@ -16,3 +19,5 @@ typedef signed int sint_32;
 
 #define BIT_IS_SET(REG, BIT) ((REG) & (1 << (BIT)))
 #define BIT_IS_CLEAR(REG, BIT) (!((REG) & (1 << (BIT))))
+
+#endif
