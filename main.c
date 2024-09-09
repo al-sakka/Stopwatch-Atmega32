@@ -8,6 +8,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include "utilities.h"
 #include "seven_seg.h"
 
 #define F_CPU 16000000UL
@@ -25,7 +26,6 @@ void TIMER1_Init(void)
 	TIMSK |= (1 << OCIE1A); // Enable OCR1
 
 	TCNT1 = 0;
-
 
 	OCR1A = 250;
 
