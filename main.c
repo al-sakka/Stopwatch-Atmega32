@@ -13,7 +13,6 @@
 
 #define DELAY_VALUE 5
 #define CMP_VALUE 15625 // (F_CPU / 1024)
-#define TICKS_PER_SEC 1
 
 unsigned char isModeBtnPressed = 0;
 
@@ -84,7 +83,7 @@ void Pins_Init(void)
 	DDRC |= 0x0F;
 	DDRA |= 0x3F;
 	DDRD &= ~(1 << PD2) & ~(1 << PD3);
-	DDRB = 0;
+	DDRB = 0x00;
 	DDRD |= (1 << PD4) | (1 << PD5) | (1 << PD0);
 
 	PORTC &= ~(0x0F);
@@ -521,9 +520,7 @@ void checkMode(void)
 
 void checkAlarm(void)
 {
-	endCondition = (seconds_1 + seconds_2 + minutes_1 + minutes_2 + hours_1 + hours_2);
-
-	if(!endCondition)
+	if (!(seconds_1 || seconds_2 || minutes_1 || minutes_2 || hours_1 || hours_2))
 	{
 		PORTD |= (1 << PD0);
 		pauseTimer();
