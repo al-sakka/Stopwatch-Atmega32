@@ -1,29 +1,29 @@
-# Specify the microcontroller and CPU frequency
-MCU = atmega32
-F_CPU = 16000000UL
+# Compiler and Flags
 CC = avr-gcc
-OBJCOPY = avr-objcopy
-CFLAGS = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os
-TARGET = main
-SOURCES = $(wildcard *.c)  # Automatically includes all .c files in the directory
-OBJECTS = $(SOURCES:.c=.o)
+CFLAGS = -mmcu=atmega32 -DF_CPU=16000000UL -Os -Wall -Iinclude
 
-# Default target
-all: $(TARGET).hex
+# Files
+SRC = $(wildcard MCAL/*.c HAL/*.c Application/*.c)
+OBJ = $(SRC:.c=.o)
+TARGET = main.hex
 
-# Rule to link object files and create the ELF file
-$(TARGET).elf: $(OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $(OBJECTS)
+# Rules
+all: $(TARGET)
 
-# Rule to convert ELF file to HEX file
-$(TARGET).hex: $(TARGET).elf
-	$(OBJCOPY) -O ihex -R .eeprom $< $@
+$(TARGET): $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $(OBJ) -Wl,--output-format=elf32
+	avr-objcopy -O ihex -R .eeprom $< $@
 
-# Rule to compile C files to object files
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Rule to clean up build files
 clean:
-	rm -f $(TARGET).elf $(TARGET).hex $(OBJECTS)
+	rm -f $(OBJ) $(TARGET) *.hex
 
+flash: $(TARGET)
+	avrdude -c usbasp -p m32 -U flash:w:$(TARGET):i
+
+program: $(TARGET)
+	avrdude -c usbasp -p m32 -U flash:w:$(TARGET):i
+
+.PHONY: all clean flash program
