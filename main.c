@@ -12,7 +12,11 @@
 #define F_CPU 16000000UL
 
 #define DELAY_VALUE 5
+#define DEBOUNCE_VALUE 20
 #define CMP_VALUE 15625 // (F_CPU / 1024)
+
+#define ONES_CMP 9
+#define TENS_CMP 5
 
 unsigned char isModeBtnPressed = 0;
 
@@ -25,8 +29,6 @@ unsigned char isControlMins2Pressed = 0;
 unsigned char isControlSecs1Pressed = 0;
 unsigned char isControlSecs2Pressed = 0;
 
-unsigned char countMode = 1; // 1 count-up | 0 Count-down
-
 signed char seconds_1 = 0;
 signed char seconds_2 = 0;
 
@@ -36,7 +38,16 @@ signed char minutes_2 = 0;
 signed char hours_1 = 0;
 signed char hours_2 = 0;
 
-unsigned char endCondition = 0;
+typedef enum
+{
+	MODE_COUNT_DOWN,
+	MODE_COUNT_UP
+} CountMode;
+
+// 0 Count-down
+// 1 count-up
+
+CountMode countMode = MODE_COUNT_UP;
 
 void pauseTimer(void)
 {
@@ -54,7 +65,7 @@ void resetTimer(void)
 	hours_1 = 0;
 	hours_2 = 0;
 
-	if(!countMode)
+	if(countMode == MODE_COUNT_DOWN)
 	{
 		PORTD &= ~(1 << PD0);
 		pauseTimer();
@@ -63,15 +74,13 @@ void resetTimer(void)
 
 void resumeTimer(void)
 {
-	if(countMode)
+	if(countMode == MODE_COUNT_UP)
 	{
 		TCCR1B |= (1 << CS10) | (1 << CS12);
 	}
 	else
 	{
-		endCondition = (seconds_1 + seconds_2 + minutes_1 + minutes_2 + hours_1 + hours_2);
-
-		if(endCondition)
+		if(seconds_1 || seconds_2 || minutes_1 || minutes_2 || hours_1 || hours_2)
 		{
 			TCCR1B |= (1 << CS10) | (1 << CS12);
 		}
@@ -130,7 +139,7 @@ void INT2_Init(void)
 
 void time_logic(void)
 {
-	if(countMode)
+	if(countMode == MODE_COUNT_UP)
 	{
 		if(seconds_1 > 9)
 		{
@@ -283,127 +292,54 @@ void show_number_on_segment(void)
 
 }
 
-void decHours(void)
+void decTime(signed char *low, signed char *high, signed char max_low, signed int max_high)
 {
-	hours_1--;
+	(*low)--;
 
-	if(hours_1 < 0 && hours_2 > 0)
+	if(*low < 0 && *high > 0)
 	{
-		hours_1 = 9;
-		hours_2--;
+		*low = max_low;
+		(*high)--;
 	}
 
-	if(hours_1 < 0)
+	if(*low < 0)
 	{
-		hours_1 = 0;
+		*low = 0;
 	}
 }
 
-void incHours(void)
+void incTime(signed char *low, signed char *high, signed char max_low, signed int max_high)
 {
-	hours_1++;
+	(*low)++;
 
-	if(hours_2 == 9 && hours_1 > 9)
+	if(*high == max_high && *low > 9)
 	{
-		hours_1 = 9;
+		*low = max_low;
 	}
 
-	if(hours_1 > 9)
+	if(*low > max_low)
 	{
-		hours_1 = 0;
-		hours_2++;
+		*low = 0;
+		(*high)++;
 	}
 
-	if(hours_2 > 9)
+	if(*high > max_high)
 	{
-		hours_2 = 9;
+		*high = max_high;
 	}
 
-}
-
-void decMinutes(void)
-{
-	minutes_1--;
-
-	if(minutes_1 < 0 && minutes_2 > 0)
-	{
-		minutes_1 = 9;
-		minutes_2--;
-	}
-
-	if(minutes_1 < 0)
-	{
-		minutes_1 = 0;
-	}
-}
-
-void incMinutes(void)
-{
-	minutes_1++;
-
-	if(minutes_2 == 5 && minutes_1 > 9)
-	{
-		minutes_1 = 9;
-	}
-
-	if(minutes_1 > 9)
-	{
-		minutes_1 = 0;
-		minutes_2++;
-	}
-
-	if(minutes_2 > 9)
-	{
-		minutes_2 = 9;
-	}
-}
-
-void decSecs(void)
-{
-	seconds_1--;
-
-	if(seconds_1 < 0 && seconds_2 > 0)
-	{
-		seconds_1 = 9;
-		seconds_2--;
-	}
-
-	if(seconds_1 < 0)
-	{
-		seconds_1 = 0;
-	}
-}
-
-void incSecs(void)
-{
-	seconds_1++;
-
-	if(seconds_2 == 5 && seconds_1 > 9)
-	{
-		seconds_1 = 9;
-	}
-
-	if(seconds_1 > 9)
-	{
-		seconds_1 = 0;
-		seconds_2++;
-	}
-
-	if(seconds_2 > 5)
-	{
-		seconds_2 = 5;
-	}
 }
 
 void countDwnBtns(void)
 {
+	//// decrement hours button
 	if(!(PINB & (1 << PB0)))
 	{
-		_delay_ms(10);
+		_delay_ms(DEBOUNCE_VALUE);
 		if(!(PINB & (1 << PB0)) && !isControlHours1Pressed)
 		{
 			isControlHours1Pressed = 1;
-			decHours();
+			decTime(&hours_1, &hours_2, 9, 5);
 		}
 	}
 	else
@@ -411,13 +347,15 @@ void countDwnBtns(void)
 		isControlHours1Pressed = 0;
 	}
 
+
+	//// increment hours button
 	if(!(PINB & (1 << PB1)))
 	{
-		_delay_ms(10);
+		_delay_ms(DEBOUNCE_VALUE);
 		if(!(PINB & (1 << PB1)) && !isControlHours2Pressed)
 		{
 			isControlHours2Pressed = 1;
-			incHours();
+			incTime(&hours_1, &hours_2, 9, 5);
 		}
 	}
 	else
@@ -425,15 +363,14 @@ void countDwnBtns(void)
 		isControlHours2Pressed = 0;
 	}
 
-	////
-
+	//// decrement minutes button
 	if(!(PINB & (1 << PB3)))
 	{
-		_delay_ms(10);
+		_delay_ms(DEBOUNCE_VALUE);
 		if(!(PINB & (1 << PB3)) && !isControlMins1Pressed)
 		{
 			isControlMins1Pressed = 1;
-			decMinutes();
+			decTime(&minutes_1, &minutes_2, 9, 5);
 		}
 	}
 	else
@@ -441,13 +378,14 @@ void countDwnBtns(void)
 		isControlMins1Pressed = 0;
 	}
 
+	//// increment minutes button
 	if(!(PINB & (1 << PB4)))
 	{
-		_delay_ms(10);
+		_delay_ms(DEBOUNCE_VALUE);
 		if(!(PINB & (1 << PB4)) && !isControlMins2Pressed)
 		{
 			isControlMins2Pressed = 1;
-			incMinutes();
+			incTime(&minutes_1, &minutes_2, 9, 5);
 		}
 	}
 	else
@@ -455,15 +393,14 @@ void countDwnBtns(void)
 		isControlMins2Pressed = 0;
 	}
 
-	////
-
+	//// decrement seconds button
 	if(!(PINB & (1 << PB5)))
 	{
-		_delay_ms(10);
+		_delay_ms(DEBOUNCE_VALUE);
 		if(!(PINB & (1 << PB5)) && !isControlSecs1Pressed)
 		{
 			isControlSecs1Pressed = 1;
-			decSecs();
+			decTime(&seconds_1, &seconds_2, 9, 5);
 		}
 	}
 	else
@@ -471,31 +408,31 @@ void countDwnBtns(void)
 		isControlSecs1Pressed = 0;
 	}
 
+	//// increment seconds button
 	if(!(PINB & (1 << PB6)))
 	{
-		_delay_ms(10);
+		_delay_ms(DEBOUNCE_VALUE);
 		if(!(PINB & (1 << PB6)) && !isControlSecs2Pressed)
 		{
 			isControlSecs2Pressed = 1;
-			incSecs();
+			incTime(&seconds_1, &seconds_2, 9, 5);
 		}
 	}
 	else
 	{
 		isControlSecs2Pressed = 0;
 	}
-
 }
 
 void checkMode(void)
 {
 	if(!(PINB & (1 << PB7)))
 	{
-		_delay_ms(10);
+		_delay_ms(DEBOUNCE_VALUE);
 		if(!(PINB & (1 << PB7)) && !isModeBtnPressed)
 		{
 			isModeBtnPressed = 1;
-			countMode = !countMode;
+			countMode = (countMode == MODE_COUNT_UP) ? MODE_COUNT_DOWN : MODE_COUNT_UP;
 
 			PORTD &= ~(1 << PD0);
 		}
@@ -505,7 +442,7 @@ void checkMode(void)
 		isModeBtnPressed = 0;
 	}
 
-	if(countMode)
+	if(countMode == MODE_COUNT_UP)
 	{
 		PORTD &= ~(1 << PD5);
 		PORTD |= (1 << PD4);
@@ -544,7 +481,7 @@ int main(void)
 
 ISR(TIMER1_COMPA_vect)
 {
-	if(countMode)
+	if(countMode == MODE_COUNT_UP)
 	{
 		seconds_1++;
 	}
