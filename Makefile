@@ -11,7 +11,7 @@ TARGET = main.hex
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ) -Wl,--output-format=elf32
+	$(CC) $(CFLAGS) -o $@ $(OBJ)
 	avr-objcopy -O ihex -R .eeprom $< $@
 
 %.o: %.c
