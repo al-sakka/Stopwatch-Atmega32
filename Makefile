@@ -3,7 +3,7 @@ CC = avr-gcc
 CFLAGS = -mmcu=atmega32 -DF_CPU=16000000UL -Os -Wall -Iinclude
 
 # Files
-SRC = $(wildcard MCAL/*.c HAL/*.c Application/*.c)
+SRC = $(wildcard MCAL/*.c HAL/*.c *.c)
 OBJ = $(SRC:.c=.o)
 TARGET = main.hex
 
