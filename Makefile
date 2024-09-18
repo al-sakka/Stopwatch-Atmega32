@@ -3,7 +3,7 @@ CC = avr-gcc
 CFLAGS = -mmcu=atmega32 -DF_CPU=16000000UL -Os -Wall -Iinclude
 
 # Files
-SRC = $(wildcard MCAL/GPIO/*.c MCAL/Interrupts/*.c MCAL/Timer/*.c HAL/7Segment/*.c HAL/Buttons/*.c HAL/time_utils/*.c *.c)
+SRC = $(shell find . -name "*.c")
 OBJ = $(SRC:.c=.o)
 TARGET = main.hex
 
